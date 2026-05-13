@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chris AI Code-Forge</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #2b313c; /* 훨씬 밝고 모던한 스튜디오 그레이-블루 */
+      font-family: 'Segoe UI', sans-serif;
+      color: #e6edf3;
+    }
+    
+    /* 프로젝트 사이드바 (좌측) */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 240px;
+      height: 100vh;
+      background: #1c2128; /* 사이드바 대비 강조 */
+      border-right: 1px solid #444c56;
+      display: flex;
+      flex-direction: column;
+      z-index: 1500;
+    }
+    #sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #30363d;
+    }
+    #btn-new-project {
+      width: 100%;
+      padding: 10px;
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    #btn-new-project:hover { background: #2ea043; }
+    
+    #project-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .project-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #8b949e;
+      transition: background 0.2s;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .project-item:hover { background: #161b22; color: #c9d1d9; }
+    .project-item.active { 
+      background: #1f6feb22; 
+      color: #58a6ff; 
+      border-color: #1f6feb;
+    }
+    
+    .project-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .btn-delete-project {
+      opacity: 0.4; /* 기본적으로 살짝 보이게 수정 */
+      background: rgba(248, 81, 73, 0.1);
+      border: none;
+      color: #f85149;
+      font-size: 12px;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      line-height: 1;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .project-item:hover .btn-delete-project {
+      opacity: 1;
+      background: rgba(248, 81, 73, 0.2);
+    }
+    .btn-delete-project:hover {
+      background: #f85149 !important;
+      color: #ffffff !important;
+    }
+
+    /* 메인 게임 영역 (사이드바 폭 만큼 이동) */
+    #game-container {
+      position: fixed;
+      top: 0; left: 240px;
+      width: calc(100vw - 240px - 320px); /* 우측 사이드바가 320px로 확장됨 */
+      height: 100vh;
+    }
+    #game-container canvas {
+      display: block;
+    }
+
+    /* 엔진 토글 */
+    #engine-bar {
+      position: fixed;
+      top: 12px; left: 252px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+    .engine-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #444;
+      background: #1a1a2e;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .2s;
+    }
+    .engine-btn.active {
+      background: #4a90d9;
+      color: #fff;
+      border-color: #4a90d9;
+    }
+
+    /* 승인 오버레이 */
+    #approval-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+    #approval-overlay.show { display: flex; }
+    #approval-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 0;
+      max-width: 900px;
+      width: 100%;
+      height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    #approval-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #30363d;
+      background: #0d1117;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #approval-header h3 { color: #58a6ff; font-size: 18px; }
+    #approval-content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      background: #0d1117;
+    }
+    #approval-text {
+      white-space: pre-wrap;
+      font-size: 14px;
+      color: #c9d1d9;
+      line-height: 1.6;
+      font-family: 'Consolas', monospace;
+    }
+    /* 스크롤바 스타일 */
+    #approval-content-area::-webkit-scrollbar { width: 8px; }
+    #approval-content-area::-webkit-scrollbar-track { background: #0d1117; }
+    #approval-content-area::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    
+    #approval-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #30363d;
+      background: #161b22;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #comment-area {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #comment-area label { font-size: 12px; color: #8b949e; }
+    #input-feedback {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      padding: 10px;
+      font-size: 14px;
+      resize: none;
+      height: 60px;
+    }
+    .approval-btns {
+      display: flex; gap: 12px; justify-content: flex-end;
+    }
+    .approval-btns button {
+      padding: 8px 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(240,246,252,0.1);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    #btn-approve { background: #238636; color: #fff; }
+    #btn-approve:hover { background: #2ea043; }
+    #btn-reject  { background: #21262d; color: #c9d1d9; }
+    #btn-reject:hover { background: #30363d; border-color: #8b949e; }
+  </style>
+</head>
+<body>
+
+<!-- 프로젝트 사이드바 -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <button id="btn-new-project">+ New Project</button>
+  </div>
+  <div id="project-list">
+    <!-- 프로젝트 아이템들이 여기에 동적 생성됨 -->
+  </div>
+</div>
+
+<!-- 엔진 전환 버튼 -->
+<div id="engine-bar">
+  <button class="engine-btn" data-engine="gemini">Gemini Enterprise</button>
+  <span id="ws-status" style="font-size:11px;color:#555;padding:0 6px;line-height:32px;">●</span>
+</div>
+
+<!-- 게임 캔버스 -->
+<div id="game-container"></div>
+
+<!-- 승인 오버레이 -->
+<div id="approval-overlay">
+  <div id="approval-box">
+    <div id="approval-header">
+      <h3>📋 작업 계획 및 인수인계서 검토</h3>
+    </div>
+    <div id="approval-content-area">
+      <div id="approval-text"></div>
+    </div>
+    <div id="approval-footer">
+      <div id="comment-area">
+        <label for="input-feedback">수정 요청 및 코멘트 (비워두면 바로 승인)</label>
+        <textarea id="input-feedback" placeholder="계획에 대한 피드백을 입력하세요..."></textarea>
+      </div>
+      <div class="approval-btns">
+        <button id="btn-reject">취소/중단</button>
+        <button id="btn-approve">✅ 확인 및 진행</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="/game/ReportPanel.js"></script>
+<script src="/game/Agent.js"></script>
+<script src="/game/AgentModal.js"></script>
+<script src="/game/DialogBubble.js"></script>
+<script src="/game/TimerPanel.js"></script>
+<script src="/game/WorldScene.js"></script>
+<script src="/game/main.js"></script>
+</body>
+</html>

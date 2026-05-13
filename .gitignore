@@ -1,0 +1,44 @@
+# 환경변수 (API 키) — 절대 커밋하지 말 것
+.env
+local_token.json
+
+# 데이터 및 백업
+data/*.db
+data/*.json
+backups/
+logs/
+
+# Local Session Data & Storage
+storage/
+backend/logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+backend/venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 산출물 및 임시 파일
+output/
+temp/
+dist/
+build/
+*.log
+*.bak
